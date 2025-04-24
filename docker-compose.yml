@@ -2,23 +2,63 @@ version: '3'
 services:
   db:
     image: postgres
-    environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_DB: ${DB_NAME}
+    env_file:
+      - .env
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"] 
       interval: 5s
       timeout: 5s
       retries: 10
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_NAME}
     ports:
         - "5432:5432"
-  web:
+    networks:
+        - geo-net
+  user1:
     build: .
-    container_name: user-microservice
+    container_name: user-microservice-container-1
     env_file:
       - .env
-    ports:
-      - "1234:1234"
     depends_on:
       - db
+    networks:
+      - geo-net
+  user2:
+    build: .
+    container_name: user-microservice-container-2
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - geo-net
+  user3:
+    build: .
+    container_name: user-microservice-container-3
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - geo-net
+
+  user-nginx:
+    image: nginx:latest
+    ports:
+      - "1234:1234"
+    volumes:
+      - ./user-nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - geo-net
+    depends_on:
+      - user1
+      - user2
+      - user3
+
+networks:
+  geo-net:
+    external: true 
+    name: geo-net
